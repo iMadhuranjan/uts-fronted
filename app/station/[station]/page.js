@@ -1,62 +1,38 @@
-import React from "react";
-import BlogWrapper from "./BlogWrapper";
+'use client'
 
-async function fetchStationDetails(stationId) {
-  // Fetch the station details on the server
-  const response = await fetch(
-    `http://localhost:5000/api/viewqr/station/${stationId}`,
-    {
-      cache: "force-cache", // Ensures SSG behavior
-    }
-  );
+import { fetchStationDetails } from '@/app/Store/uploadSlice';
+import { useParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux';
+import BlogWrapper from './BlogWrapper';
 
-  if (!response.ok) {
-    return null;
+const page = () => {
+  const { station } = useParams();
+  const [loading, setLoading] = useState(true)
+  const [stationDetail, setStationDetail] = useState([]);
+
+  const disptach = useDispatch();
+
+  useEffect(() => {
+    disptach(fetchStationDetails({ id: station })).then((result) => {
+      if (result?.payload?.success) {
+        setStationDetail(result?.payload?.station);
+        console.log(stationDetail);
+        setLoading(false);
+      }
+    })
+  }, [stationDetail, disptach]);
+
+
+
+  if (loading) {
+    return <div> Loading... </div>
   }
-
-  return response.json();
-}
-
-const Page = async ({ params }) => {
-  const stationId = await params.station;
-
-  const stationDetails = await fetchStationDetails(stationId);
-
-  if (!stationDetails) {
-    return <div>Station not found</div>;
-  }
-
   return (
     <div>
-      <BlogWrapper stationDetails={stationDetails.station} />
+      <BlogWrapper stationDetails={stationDetail} />
     </div>
-  );
-};
-
-export async function generateMetadata({ params }) {
-  const stationId = params.station;
-  const stationDetails = await fetchStationDetails(stationId);
-
-  if (!stationDetails) {
-    return {
-      title: "Station Not Found",
-      description: "The requested station could not be found.",
-    };
-  }
-
-  return {
-    title: `${stationDetails.station.stationName
-      .toLowerCase()
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ")} Station UTS QR Code (Active Code) 2025 `,
-    description: `With the help of ${stationDetails.station.stationName
-      .toLowerCase()
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ")} Station UTS QR Code you can book ticket at ${stationDetails.station.stationName
-      } Station with in a Second. We provde 100% Working and Updated UTS QR Code the Station`,
-  };
+  )
 }
 
-export default Page;
+export default page
